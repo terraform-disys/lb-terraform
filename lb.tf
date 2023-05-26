@@ -1,14 +1,16 @@
+# Resource-1: Create Public IP Address for Azure Load Balancer
 resource "azurerm_public_ip" "lb_pip" {
-  name = "lb-pip"
+  name                = "lb-pip"
   location            = azurerm_resource_group.lb_rg.location
   resource_group_name = azurerm_resource_group.lb_rg.name
   allocation_method   = "Static"
-  domain_name_label =  azurerm_resource_group.lb_rg.name
+  domain_name_label   = azurerm_resource_group.lb_rg.name
 
 }
 
+# Resource-2: Create Azure Load Balancer
 resource "azurerm_lb" "loadbalancer" {
- name = "${var.prefix}-loadbalancer"
+  name                = "${var.prefix}-loadbalancer"
   location            = azurerm_resource_group.lb_rg.location
   resource_group_name = azurerm_resource_group.lb_rg.name
 
@@ -17,56 +19,31 @@ resource "azurerm_lb" "loadbalancer" {
     public_ip_address_id = azurerm_public_ip.lb_pip.id
   }
 }
+
+# Resource-3: Create LB Backend Pool
 resource "azurerm_lb_backend_address_pool" "lb_bap" {
-  name = "${var.prefix}-backend-address-pool"
-  loadbalancer_id = azurerm_lb.azurerm_lb.loadbalancer.id 
+  name            = "${var.prefix}-backend-address-pool"
+  loadbalancer_id = azurerm_lb.azurerm_lb.loadbalancer.id
 }
 
-resource "azurerm_lb_nat_pool" "lb_nat_pool" {
-  resource_group_name            = azurerm_resource_group.lb_rg.name
+# Resource-4: Create LB Rule
+resource "azurerm_lb_rule" "web_lb_rule" {
+  name                           = "lb-rule"
   loadbalancer_id                = azurerm_lb.loadbalancer.id
-  name                           = "VMPool"
   protocol                       = "Tcp"
-  frontend_port_start            = 80
-  frontend_port_end              = 81
-  backend_port                   = 22
+  frontend_port                  = 80
+  backend_port                   = 80
   frontend_ip_configuration_name = "PublicIPAddress"
 }
 
-resource "azurerm_lb_probe " "lb_probe" {
-  loadbalancer_id = azurerm_lb.loadbalancer.id
-  name            = "ssh-running-probe"
-  port            = 22
+# Resource-5: Create LB Probe
+resource "azurerm_lb_probe" "web_lb_probe" {
+  name                = "tcp-probe"
+  protocol            = "Tcp"
+  port                = 80
+  loadbalancer_id     = azurerm_lb.loadbalancer.id
+  resource_group_name = azurerm_resource_group.lb_rg.name
 }
 
-resource "azurerm_lb_rule" "lb_rule" {
- loadbalancer_id                = azurerm_lb.example.id
-  name                           = "LBRule"
-  protocol                       = "Tcp"
-  frontend_port                  = 3389
-  backend_port                   = 3389
-  frontend_ip_configuration_name = "PublicIPAddress"
- 
-}
+# Resource-6: Associate Network Interface and Standard Load Balancer
 
-#Used for NATing outbound for vms 
-resource "azurerm_lb_outbound_rule" "lb_ob_rule" {
-  name                    = "OutboundRule"
-  loadbalancer_id         = azurerm_lb.loadbalancer.id
-  protocol                = "Tcp"
-  backend_address_pool_id = azurerm_lb_backend_address_pool.backend_address_pool_id.id
-
-  frontend_ip_configuration {
-    name = "PublicIPAddress"
-  }
-}
-
-resource "azurerm_lb_nat_rule" "lb_nat_rule" {
-  resource_group_name            = azurerm_resource_group.example.name
-  loadbalancer_id                = azurerm_lb.example.id
-  name                           = "RDPAccess"
-  protocol                       = "Tcp"
-  frontend_port                  = 3389
-  backend_port                   = 3389
-  frontend_ip_configuration_name = "PublicIPAddress"
-}
