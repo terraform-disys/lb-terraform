@@ -14,6 +14,7 @@ provider "azurerm" {
   skip_provider_registration = true
 }
 
+
 resource "azurerm_resource_group" "lb_rg" {
   name     = "lb-rg"
   location = "Central India"
